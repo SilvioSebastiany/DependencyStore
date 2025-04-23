@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using DependencyStore.Models;
 using DependencyStore.Repositories.Contracts;
+using DependencyStore.Services.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using RestSharp;
@@ -10,10 +11,12 @@ namespace DependencyStore.Controllers;
 public class OrderController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;
+    private readonly IDeliveryFeeService _deliveryFeeService;
 
-    public OrderController(ICustomerRepository customerRepository)
+    public OrderController(ICustomerRepository customerRepository, IDeliveryFeeService deliveryFeeService)
     {
         _customerRepository = customerRepository;
+        _deliveryFeeService = deliveryFeeService;
     }
 
     [Route("v1/orders")]
@@ -23,21 +26,14 @@ public class OrderController : ControllerBase
         // #1 - Recupera o cliente
         var customer = await _customerRepository.GetByIdAsync(customerId);
         if (customer == null)
-            return NotFound();
+            return NotFound("Cliente não encontrado.");
 
 
         // #2 - Calcula o frete
-        decimal deliveryFee = 0;
-        var client = new RestClient("https://consultafrete.io/cep/");
-        var request = new RestRequest()
-            .AddJsonBody(new
-            {
-                zipCode
-            });
-        deliveryFee = await client.PostAsync<decimal>(request, new CancellationToken());
-        // Nunca é menos que R$ 5,00
-        if (deliveryFee < 5)
-            deliveryFee = 5;
+        var deliveryFee = await _deliveryFeeService.GetDeliveryFeeAsync(zipCode);
+        if (deliveryFee == 0)
+            return BadRequest("Frete não disponível para o CEP informado.");
+
 
         // #3 - Calcula o total dos produtos
         decimal subTotal = 0;

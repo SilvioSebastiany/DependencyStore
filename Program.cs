@@ -1,3 +1,4 @@
+using DependencyStore;
 using DependencyStore.Repositories;
 using DependencyStore.Repositories.Contracts;
 using DependencyStore.Services;
@@ -11,6 +12,8 @@ builder.Services.AddTransient<IPromoCodeRepository, PromoCodeRepository>();
 builder.Services.AddTransient<IDeliveryFeeService, DeliveryFeeService>();
 
 builder.Services.AddScoped<SqlConnection>(sp => new SqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddSingleton<Configuration>();
 
 
 builder.Services.AddControllers();
